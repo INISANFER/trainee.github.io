@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Registro de Entrenos</title>
+<meta name="theme-color" content="#15171A">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Entrenos">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon-32.png">
+<style>
+  :root{
+    --bg:#15171A;
+    --surface:#1E2226;
+    --surface-2:#262B31;
+    --line:#31363C;
+    --text:#ECEAE4;
+    --text-dim:#9CA3AB;
+    --gold:#F2B807;
+    --gold-dim:#B58A0A;
+    --red:#D6544A;
+    --green:#4CAF6D;
+    --radius:16px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    overscroll-behavior-y:none;
+    touch-action:manipulation;
+  }
+  #app{
+    display:flex;
+    flex-direction:column;
+    height:100dvh;
+  }
+  header{
+    padding:calc(var(--safe-top) + 14px) 20px 12px;
+    flex-shrink:0;
+  }
+  header h1{
+    margin:0;
+    font-size:22px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+  }
+  header p{
+    margin:2px 0 0;
+    font-size:13px;
+    color:var(--text-dim);
+  }
+  main{
+    flex:1;
+    overflow-y:auto;
+    padding:0 16px calc(96px + var(--safe-bottom));
+    -webkit-overflow-scrolling:touch;
+  }
+  main[hidden]{display:none;}
+
+  /* ---------- listas genéricas ---------- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    margin-bottom:10px;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .search{
+    width:100%;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:16px;
+    padding:12px 14px;
+    border-radius:12px;
+    margin:14px 0 12px;
+  }
+  .search::placeholder{color:var(--text-dim);}
+
+  .ex-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    margin-bottom:10px;
+    color:var(--text);
+    font-size:17px;
+    font-weight:600;
+    text-align:left;
+  }
+  .ex-item .hint{
+    display:block;
+    font-size:13px;
+    font-weight:400;
+    color:var(--text-dim);
+    margin-top:3px;
+  }
+  .ex-item .chev{color:var(--text-dim);font-size:20px;}
+  .empty{
+    color:var(--text-dim);
+    font-size:15px;
+    text-align:center;
+    padding:40px 20px;
+    line-height:1.5;
+  }
+
+  /* ---------- botones ---------- */
+  button{font-family:inherit;}
+  .btn{
+    border:none;
+    border-radius:14px;
+    padding:14px 18px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-gold{background:var(--gold);color:#1A1503;}
+  .btn-ghost{background:var(--surface-2);color:var(--text);}
+  .btn-outline{background:transparent;color:var(--text-dim);border:1px solid var(--line);}
+  .btn-full{width:100%;}
+  .btn:active{transform:scale(0.97);}
+  .icon-btn{
+    background:none;border:none;color:var(--text-dim);
+    font-size:20px;line-height:1;padding:6px 8px;cursor:pointer;
+  }
+  .icon-btn.danger{color:var(--red);}
+
+  /* ---------- tab bar ---------- */
+  nav#tabbar{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    display:flex;
+    background:rgba(30,34,38,0.92);
+    backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);
+    padding:8px 6px calc(8px + var(--safe-bottom));
+  }
+  nav#tabbar button{
+    flex:1;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:12px;
+    font-weight:600;
+    padding:6px 4px 2px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+  }
+  nav#tabbar button .dot{
+    width:6px;height:6px;border-radius:50%;background:transparent;
+  }
+  nav#tabbar button.active{color:var(--gold);}
+  nav#tabbar button.active .dot{background:var(--gold);}
+
+  /* ---------- vista: registrar serie ---------- */
+  .log-header{
+    display:flex;align-items:center;gap:10px;
+    margin:14px 0 18px;
+  }
+  .log-header h2{
+    margin:0;font-size:20px;font-weight:800;flex:1;
+    letter-spacing:-0.01em;
+  }
+  .stepper-block{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:22px 18px;
+    margin-bottom:14px;
+  }
+  .stepper-label{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.02em;
+    color:var(--text-dim);
+    margin-bottom:10px;
+  }
+  .stepper{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+  }
+  .stepper button{
+    width:56px;height:56px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    color:var(--text);
+    font-size:26px;
+    font-weight:400;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .stepper button:active{background:var(--gold);color:#1A1503;border-color:var(--gold);}
+  .stepper .value{
+    min-width:118px;
+    text-align:center;
+    font-size:40px;
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-0.02em;
+    background:none;border:none;color:var(--text);
+  }
+  .stepper .unit{font-size:16px;font-weight:600;color:var(--text-dim);margin-left:4px;}
+  .step-hint{
+    text-align:center;
+    font-size:12px;
+    color:var(--text-dim);
+    margin-top:10px;
+  }
+
+  .log-btn{
+    display:block;
+    width:100%;
+    background:var(--gold);
+    color:#1A1503;
+    border:none;
+    border-radius:18px;
+    padding:20px;
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin:6px 0 22px;
+    cursor:pointer;
+  }
+  .log-btn:active{transform:scale(0.98);background:var(--gold-dim);}
+
+  .sets-title{
+    font-size:13px;font-weight:700;color:var(--text-dim);
+    margin:0 2px 10px;text-transform:none;
+  }
+  .set-row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:8px;
+  }
+  .set-row .set-idx{
+    color:var(--text-dim);
+    font-size:13px;
+    font-weight:700;
+    width:26px;
+  }
+  .set-row .set-val{
+    flex:1;
+    font-size:16px;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- ejercicios ---------- */
+  .add-row{
+    display:flex;gap:8px;margin:14px 0 16px;
+  }
+  .add-row input{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:16px;
+    padding:12px 14px;
+    border-radius:12px;
+  }
+  .section-label{
+    font-size:12px;font-weight:700;color:var(--text-dim);
+    letter-spacing:0.02em;
+    margin:18px 2px 8px;
+  }
+  .archived-row{opacity:0.7;}
+
+  /* ---------- segmentado (Ejercicios / Grupos) ---------- */
+  .seg-control{
+    display:flex;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:3px;
+    margin:14px 0 16px;
+  }
+  .seg-control button{
+    flex:1;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:14px;
+    font-weight:700;
+    padding:9px 0;
+    border-radius:9px;
+    cursor:pointer;
+  }
+  .seg-control button.active{background:var(--surface-2);color:var(--text);}
+
+  /* ---------- chips de grupo (vista Entrenar) ---------- */
+  .chip-row{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:14px 0 2px;
+    margin-bottom:2px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .chip-row::-webkit-scrollbar{display:none;}
+  .chip{
+    flex:0 0 auto;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-size:14px;
+    font-weight:700;
+    padding:9px 16px;
+    border-radius:100px;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  .chip.active{background:var(--gold);color:#1A1503;border-color:var(--gold);}
+
+  /* ---------- grupos: lista y editor ---------- */
+  .badge-row{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;}
+  .badge{
+    font-size:11px;
+    font-weight:700;
+    color:var(--text-dim);
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    padding:2px 8px;
+    border-radius:100px;
+  }
+  .grp-row{
+    display:flex;align-items:center;gap:10px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:11px 12px;
+    margin-bottom:8px;
+  }
+  .grp-row .grp-name{flex:1;font-size:15px;font-weight:600;}
+  .grp-row .grp-name .archived-tag{display:block;font-size:12px;font-weight:400;color:var(--text-dim);margin-top:2px;}
+  .grp-row .arrows{display:flex;flex-direction:column;gap:2px;}
+  .grp-row .arrows button{
+    background:none;border:none;color:var(--text-dim);
+    font-size:13px;padding:2px 6px;cursor:pointer;line-height:1;
+  }
+  .grp-row .arrows button:disabled{opacity:0.25;}
+  .add-ex-item{
+    display:flex;align-items:center;justify-content:space-between;
+    width:100%;
+    background:var(--surface);
+    border:1px dashed var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:8px;
+    color:var(--text);
+    font-size:15px;
+    text-align:left;
+  }
+
+  /* ---------- datos ---------- */
+  .stat-grid{display:flex;gap:10px;margin:14px 0 4px;}
+  .stat{
+    flex:1;background:var(--surface);border:1px solid var(--line);
+    border-radius:14px;padding:14px;text-align:center;
+  }
+  .stat .n{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .persist-ok{color:var(--green);}
+  .persist-warn{color:var(--gold);}
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed;
+    left:50%;
+    bottom:calc(94px + var(--safe-bottom));
+    transform:translateX(-50%) translateY(12px);
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 18px;
+    border-radius:100px;
+    font-size:14px;
+    font-weight:600;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+    z-index:50;
+    white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---------- modal simple ---------- */
+  #modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,0.55);
+    display:flex;align-items:flex-end;justify-content:center;
+    z-index:80;
+  }
+  #modal-backdrop[hidden]{display:none;}
+  #modal{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:20px 20px 0 0;
+    width:100%;
+    max-width:480px;
+    padding:20px 20px calc(20px + var(--safe-bottom));
+  }
+  #modal h3{margin:0 0 6px;font-size:17px;}
+  #modal p{margin:0 0 16px;color:var(--text-dim);font-size:14px;line-height:1.5;}
+  #modal .modal-actions{display:flex;gap:10px;}
+  #modal .modal-actions .btn{flex:1;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 id="header-title">Registro de Entrenos</h1>
+    <p id="header-sub">&nbsp;</p>
+  </header>
+
+  <main id="view-entrenar">
+    <div id="entrenar-pick">
+      <div id="group-chip-row" class="chip-row" hidden></div>
+      <input class="search" id="ex-search" placeholder="Buscar ejercicio…" autocomplete="off">
+      <div id="ex-pick-list"></div>
+    </div>
+    <div id="entrenar-log" hidden></div>
+  </main>
+
+  <main id="view-ejercicios" hidden>
+    <div class="seg-control">
+      <button data-seg="ejercicios" class="active">Ejercicios</button>
+      <button data-seg="grupos">Grupos</button>
+    </div>
+
+    <div id="sub-ejercicios">
+      <div class="add-row">
+        <input id="new-ex-name" placeholder="Nuevo ejercicio…" autocomplete="off">
+        <button class="btn btn-gold" id="add-ex-btn">Añadir</button>
+      </div>
+      <div id="active-ex-list"></div>
+      <div id="archived-wrap"></div>
+    </div>
+
+    <div id="sub-grupos" hidden>
+      <div id="grupos-list-view">
+        <div class="add-row">
+          <input id="new-grp-name" placeholder="Nuevo grupo… (p. ej. Empuje)" autocomplete="off">
+          <button class="btn btn-gold" id="add-grp-btn">Añadir</button>
+        </div>
+        <div id="groups-list"></div>
+      </div>
+      <div id="grupo-editor-view" hidden></div>
+    </div>
+  </main>
+
+  <main id="view-datos" hidden>
+    <div class="stat-grid">
+      <div class="stat"><div class="n" id="stat-sets">0</div><div class="l">series registradas</div></div>
+      <div class="stat"><div class="n" id="stat-ex">0</div><div class="l">ejercicios</div></div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="row">
+        <div>
+          <strong style="font-size:15px;">Almacenamiento persistente</strong>
+          <div id="persist-status" style="font-size:13px;color:var(--text-dim);margin-top:3px;">Comprobando…</div>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-full" id="persist-btn" style="margin-top:12px;display:none;">Solicitar almacenamiento persistente</button>
+    </div>
+
+    <div class="card">
+      <strong style="font-size:15px;">Copia de seguridad</strong>
+      <p style="font-size:13px;color:var(--text-dim);margin:6px 0 14px;line-height:1.5;">
+        Todo se guarda solo en este iPhone. Exporta un archivo de vez en cuando para no perder tu historial.
+      </p>
+      <button class="btn btn-gold btn-full" id="export-btn">Exportar copia de seguridad</button>
+      <button class="btn btn-ghost btn-full" id="import-btn" style="margin-top:8px;">Importar copia de seguridad</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+    </div>
+  </main>
+
+  <nav id="tabbar">
+    <button data-view="entrenar" class="active"><span class="dot"></span>Entrenar</button>
+    <button data-view="ejercicios"><span class="dot"></span>Ejercicios</button>
+    <button data-view="datos"><span class="dot"></span>Datos</button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<div id="modal-backdrop" hidden>
+  <div id="modal">
+    <h3 id="modal-title"></h3>
+    <p id="modal-body"></p>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ============================================================
+   IndexedDB
+============================================================ */
+const DB_NAME = "entrenos-db";
+const DB_VERSION = 2;
+let dbPromise = null;
+
+function openDB(){
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("exercises")) {
+        db.createObjectStore("exercises", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("sets")) {
+        const store = db.createObjectStore("sets", { keyPath: "id" });
+        store.createIndex("by_date", "date", { unique: false });
+        store.createIndex("by_exercise", "exerciseId", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("groups")) {
+        // grupo: { id, name, exerciseIds: [ids en orden], createdAt }
+        db.createObjectStore("groups", { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbPromise;
+}
+
+function tx(storeNames, mode){
+  return openDB().then(db => db.transaction(storeNames, mode));
+}
+
+function reqToPromise(req){
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function uuid(){
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+}
+
+function todayStr(){
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+/* ---- exercises ---- */
+async function addExercise(name){
+  const t = await tx("exercises", "readwrite");
+  const ex = { id: uuid(), name: name.trim(), active: true, createdAt: Date.now() };
+  t.objectStore("exercises").add(ex);
+  await reqToPromise(t.objectStore("exercises").get(ex.id));
+  return ex;
+}
+async function listExercises(){
+  const t = await tx("exercises", "readonly");
+  return reqToPromise(t.objectStore("exercises").getAll());
+}
+async function saveExercise(ex){
+  const t = await tx("exercises", "readwrite");
+  t.objectStore("exercises").put(ex);
+  return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+}
+async function deleteExerciseHard(id){
+  const t = await tx("exercises", "readwrite");
+  t.objectStore("exercises").delete(id);
+  return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+}
+
+/* ---- sets ---- */
+async function addSet({ exerciseId, weight, reps, note }){
+  const t = await tx("sets", "readwrite");
+  const s = { id: uuid(), exerciseId, date: todayStr(), weight, reps, note: note || "", ts: Date.now() };
+  t.objectStore("sets").add(s);
+  return new Promise((res, rej) => { t.oncomplete = () => res(s); t.onerror = () => rej(t.error); });
+}
+async function deleteSet(id){
+  const t = await tx("sets", "readwrite");
+  t.objectStore("sets").delete(id);
+  return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+}
+async function updateSet(s){
+  const t = await tx("sets", "readwrite");
+  t.objectStore("sets").put(s);
+  return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+}
+async function allSets(){
+  const t = await tx("sets", "readonly");
+  return reqToPromise(t.objectStore("sets").getAll());
+}
+async function setsForExerciseToday(exerciseId){
+  const all = await allSetsForExercise(exerciseId);
+  const today = todayStr();
+  return all.filter(s => s.date === today).sort((a, b) => a.ts - b.ts);
+}
+async function allSetsForExercise(exerciseId){
+  const t = await tx("sets", "readonly");
+  const idx = t.objectStore("sets").index("by_exercise");
+  return reqToPromise(idx.getAll(exerciseId));
+}
+async function lastSetFor(exerciseId){
+  const all = await allSetsForExercise(exerciseId);
+  if (!all.length) return null;
+  return all.sort((a, b) => b.ts - a.ts)[0];
+}
+async function lastUsedTs(exerciseId){
+  const s = await lastSetFor(exerciseId);
+  return s ? s.ts : 0;
+}
+
+/* ---- groups ---- */
+async function listGroups(){
+  const t = await tx("groups", "readonly");
+  const all = await reqToPromise(t.objectStore("groups").getAll());
+  return all.sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+async function addGroup(name){
+  const t = await tx("groups", "readwrite");
+  const g = { id: uuid(), name: name.trim(), exerciseIds: [], createdAt: Date.now() };
+  t.objectStore("groups").add(g);
+  return new Promise((res, rej) => { t.oncomplete = () => res(g); t.onerror = () => rej(t.error); });
+}
+async function saveGroup(g){
+  const t = await tx("groups", "readwrite");
+  t.objectStore("groups").put(g);
+  return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+}
+async function deleteGroup(id){
+  const t = await tx("groups", "readwrite");
+  t.objectStore("groups").delete(id);
+  return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+}
+async function cleanupGroupReferences(exerciseId){
+  const groups = await listGroups();
+  for (const g of groups) {
+    if (g.exerciseIds.includes(exerciseId)) {
+      g.exerciseIds = g.exerciseIds.filter(id => id !== exerciseId);
+      await saveGroup(g);
+    }
+  }
+}
+async function groupsForExercise(exerciseId){
+  const groups = await listGroups();
+  return groups.filter(g => g.exerciseIds.includes(exerciseId));
+}
+
+/* ============================================================
+   Estado / navegación
+============================================================ */
+const state = {
+  view: "entrenar",
+  currentExercise: null, // objeto ejercicio en curso de registro
+  weight: 20,
+  reps: 8,
+  selectedGroupId: null, // null = "Todos" en la vista Entrenar
+  exSeg: "ejercicios",   // sub-vista activa dentro de la pestaña Ejercicios
+  editingGroupId: null,  // grupo abierto en el editor, o null = lista de grupos
+};
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+function showToast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+function openModal({ title, body, actions }){
+  $("#modal-title").textContent = title;
+  $("#modal-body").textContent = body;
+  const wrap = $("#modal-actions");
+  wrap.innerHTML = "";
+  actions.forEach(a => {
+    const b = document.createElement("button");
+    b.className = "btn " + (a.cls || "btn-ghost");
+    b.textContent = a.label;
+    b.onclick = () => { closeModal(); a.onClick && a.onClick(); };
+    wrap.appendChild(b);
+  });
+  $("#modal-backdrop").hidden = false;
+}
+function closeModal(){ $("#modal-backdrop").hidden = true; }
+$("#modal-backdrop").addEventListener("click", (e) => { if (e.target.id === "modal-backdrop") closeModal(); });
+
+function setView(view){
+  state.view = view;
+  $$("#tabbar button").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  $("#view-entrenar").hidden = view !== "entrenar";
+  $("#view-ejercicios").hidden = view !== "ejercicios";
+  $("#view-datos").hidden = view !== "datos";
+
+  const titles = {
+    entrenar: ["Registro de Entrenos", "Elige un ejercicio para empezar"],
+    ejercicios: ["Ejercicios", "Tu catálogo personal"],
+    datos: ["Datos", "Copia de seguridad y almacenamiento"],
+  };
+  $("#header-title").textContent = titles[view][0];
+  $("#header-sub").textContent = titles[view][1];
+
+  if (view === "entrenar" && !state.currentExercise) renderPickList();
+  if (view === "ejercicios") renderEjerciciosTab();
+  if (view === "datos") renderDatos();
+}
+
+$$("#view-ejercicios .seg-control button").forEach(b => {
+  b.addEventListener("click", () => {
+    state.exSeg = b.dataset.seg;
+    state.editingGroupId = null;
+    renderEjerciciosTab();
+  });
+});
+
+function renderEjerciciosTab(){
+  $$("#view-ejercicios .seg-control button").forEach(b => b.classList.toggle("active", b.dataset.seg === state.exSeg));
+  $("#sub-ejercicios").hidden = state.exSeg !== "ejercicios";
+  $("#sub-grupos").hidden = state.exSeg !== "grupos";
+  if (state.exSeg === "ejercicios") {
+    renderExerciseManager();
+  } else if (state.editingGroupId) {
+    openGroupEditorById(state.editingGroupId);
+  } else {
+    $("#grupos-list-view").hidden = false;
+    $("#grupo-editor-view").hidden = true;
+    renderGroupsManager();
+  }
+}
+
+$$("#tabbar button").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.view === "entrenar") backToPick();
+  setView(b.dataset.view);
+}));
+
+/* ============================================================
+   Vista: Entrenar — elegir ejercicio
+============================================================ */
+async function renderGroupChips(){
+  const chipWrap = $("#group-chip-row");
+  const groups = await listGroups();
+  if (!groups.length) {
+    chipWrap.hidden = true;
+    chipWrap.innerHTML = "";
+    return;
+  }
+  chipWrap.hidden = false;
+  chipWrap.innerHTML = "";
+
+  const allChip = document.createElement("button");
+  allChip.className = "chip" + (state.selectedGroupId === null ? " active" : "");
+  allChip.textContent = "Todos";
+  allChip.addEventListener("click", () => { state.selectedGroupId = null; renderPickList($("#ex-search").value); });
+  chipWrap.appendChild(allChip);
+
+  for (const g of groups) {
+    const chip = document.createElement("button");
+    chip.className = "chip" + (state.selectedGroupId === g.id ? " active" : "");
+    chip.textContent = g.name;
+    chip.addEventListener("click", () => { state.selectedGroupId = g.id; renderPickList($("#ex-search").value); });
+    chipWrap.appendChild(chip);
+  }
+}
+
+async function renderPickList(filter = ""){
+  $("#entrenar-pick").hidden = false;
+  $("#entrenar-log").hidden = true;
+  state.currentExercise = null;
+
+  await renderGroupChips();
+
+  const all = await listExercises();
+  const active = all.filter(e => e.active);
+
+  let ordered;
+  const groups = state.selectedGroupId ? await listGroups() : null;
+  const selectedGroup = groups ? groups.find(g => g.id === state.selectedGroupId) : null;
+
+  if (state.selectedGroupId && !selectedGroup) state.selectedGroupId = null;
+
+  if (selectedGroup) {
+    const byId = new Map(active.map(e => [e.id, e]));
+    ordered = selectedGroup.exerciseIds.map(id => byId.get(id)).filter(Boolean);
+  } else {
+    const withTs = await Promise.all(active.map(async e => ({ e, ts: await lastUsedTs(e.id) })));
+    withTs.sort((a, b) => b.ts - a.ts || a.e.name.localeCompare(b.e.name, "es"));
+    ordered = withTs.map(({ e }) => e);
+  }
+
+  const q = filter.trim().toLowerCase();
+  const list = ordered.filter(e => e.name.toLowerCase().includes(q));
+
+  const wrap = $("#ex-pick-list");
+  wrap.innerHTML = "";
+
+  if (!all.length) {
+    wrap.innerHTML = `<div class="empty">Todavía no tienes ejercicios.<br>Ve a la pestaña <strong>Ejercicios</strong> y añade el primero.</div>`;
+    return;
+  }
+  if (!list.length) {
+    wrap.innerHTML = state.selectedGroupId
+      ? `<div class="empty">Este grupo no tiene ejercicios activos todavía.<br>Edítalo desde <strong>Ejercicios › Grupos</strong>.</div>`
+      : `<div class="empty">Sin resultados para "${escapeHtml(filter)}".</div>`;
+    return;
+  }
+
+  for (const ex of list) {
+    const last = await lastSetFor(ex.id);
+    const btn = document.createElement("button");
+    btn.className = "ex-item";
+    btn.innerHTML = `
+      <span>${escapeHtml(ex.name)}${last ? `<span class="hint">último: ${fmtWeight(last.weight)} × ${last.reps}</span>` : `<span class="hint">sin registros aún</span>`}</span>
+      <span class="chev">›</span>`;
+    btn.addEventListener("click", () => openLogView(ex));
+    wrap.appendChild(btn);
+  }
+}
+
+$("#ex-search").addEventListener("input", (e) => renderPickList(e.target.value));
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function fmtWeight(w){
+  return (Math.round(w * 100) / 100).toString().replace(".", ",") + " kg";
+}
+
+/* ============================================================
+   Vista: Entrenar — registrar series de un ejercicio
+============================================================ */
+async function openLogView(ex){
+  state.currentExercise = ex;
+  const last = await lastSetFor(ex.id);
+  state.weight = last ? last.weight : 20;
+  state.reps = last ? last.reps : 8;
+
+  $("#entrenar-pick").hidden = true;
+  $("#entrenar-log").hidden = false;
+  await renderLogView();
+}
+
+function backToPick(){
+  if (state.currentExercise) renderPickList();
+}
+
+async function renderLogView(){
+  const ex = state.currentExercise;
+  const todaySets = await setsForExerciseToday(ex.id);
+
+  const wrap = $("#entrenar-log");
+  wrap.innerHTML = `
+    <div class="log-header">
+      <button class="icon-btn" id="back-btn">‹ Ejercicios</button>
+    </div>
+    <h2 style="margin:-8px 0 16px;">${escapeHtml(ex.name)}</h2>
+
+    <div class="stepper-block">
+      <div class="stepper-label">PESO</div>
+      <div class="stepper">
+        <button id="w-minus">−</button>
+        <div class="value">${fmtNum(state.weight)}<span class="unit">kg</span></div>
+        <button id="w-plus">+</button>
+      </div>
+      <div class="step-hint">toca el número para escribirlo a mano</div>
+    </div>
+
+    <div class="stepper-block">
+      <div class="stepper-label">REPETICIONES</div>
+      <div class="stepper">
+        <button id="r-minus">−</button>
+        <div class="value">${state.reps}</div>
+        <button id="r-plus">+</button>
+      </div>
+    </div>
+
+    <button class="log-btn" id="log-set-btn">Registrar serie</button>
+
+    <div class="sets-title">Series de hoy (${todaySets.length})</div>
+    <div id="today-sets-list"></div>
+  `;
+
+  $("#back-btn").addEventListener("click", backToPick);
+  $("#w-minus").addEventListener("click", () => changeWeight(-2.5));
+  $("#w-plus").addEventListener("click", () => changeWeight(2.5));
+  $("#r-minus").addEventListener("click", () => changeReps(-1));
+  $("#r-plus").addEventListener("click", () => changeReps(1));
+  $(".stepper-block .value").addEventListener("click", promptWeight);
+  $("#log-set-btn").addEventListener("click", logCurrentSet);
+
+  renderTodaySets(todaySets);
+}
+
+function fmtNum(n){
+  const r = Math.round(n * 100) / 100;
+  return r.toString().replace(".", ",");
+}
+
+function changeWeight(delta){
+  state.weight = Math.max(0, Math.round((state.weight + delta) * 100) / 100);
+  updateStepperValues();
+}
+function changeReps(delta){
+  state.reps = Math.max(0, state.reps + delta);
+  updateStepperValues();
+}
+function updateStepperValues(){
+  const vals = $$("#entrenar-log .value");
+  vals[0].innerHTML = `${fmtNum(state.weight)}<span class="unit">kg</span>`;
+  vals[1].textContent = state.reps;
+}
+function promptWeight(){
+  const input = prompt("Peso (kg)", fmtNum(state.weight).replace(",", "."));
+  if (input === null) return;
+  const n = parseFloat(input.replace(",", "."));
+  if (!isNaN(n) && n >= 0) {
+    state.weight = Math.round(n * 100) / 100;
+    updateStepperValues();
+  }
+}
+
+async function logCurrentSet(){
+  await addSet({ exerciseId: state.currentExercise.id, weight: state.weight, reps: state.reps });
+  await requestPersistIfNeeded();
+  showToast("Serie registrada");
+  const todaySets = await setsForExerciseToday(state.currentExercise.id);
+  $(".sets-title").textContent = `Series de hoy (${todaySets.length})`;
+  renderTodaySets(todaySets);
+}
+
+function renderTodaySets(sets){
+  const wrap = $("#today-sets-list");
+  wrap.innerHTML = "";
+  if (!sets.length) {
+    wrap.innerHTML = `<div class="empty" style="padding:20px 10px;">Aún no has registrado ninguna serie hoy.</div>`;
+    return;
+  }
+  sets.forEach((s, i) => {
+    const row = document.createElement("div");
+    row.className = "set-row";
+    row.innerHTML = `
+      <span class="set-idx">${i + 1}</span>
+      <span class="set-val">${fmtWeight(s.weight)} × ${s.reps}</span>
+      <button class="icon-btn danger" title="Eliminar">✕</button>
+    `;
+    row.querySelector("button").addEventListener("click", () => confirmDeleteSet(s));
+    wrap.appendChild(row);
+  });
+}
+
+function confirmDeleteSet(s){
+  openModal({
+    title: "¿Eliminar esta serie?",
+    body: `${fmtWeight(s.weight)} × ${s.reps} repeticiones.`,
+    actions: [
+      { label: "Cancelar", cls: "btn-ghost" },
+      { label: "Eliminar", cls: "btn-outline", onClick: async () => {
+        await deleteSet(s.id);
+        const todaySets = await setsForExerciseToday(state.currentExercise.id);
+        $(".sets-title").textContent = `Series de hoy (${todaySets.length})`;
+        renderTodaySets(todaySets);
+        showToast("Serie eliminada");
+      }},
+    ],
+  });
+}
+
+/* ============================================================
+   Vista: Ejercicios
+============================================================ */
+async function renderExerciseManager(){
+  const all = await listExercises();
+  all.sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const active = all.filter(e => e.active);
+  const archived = all.filter(e => !e.active);
+
+  const activeWrap = $("#active-ex-list");
+  activeWrap.innerHTML = "";
+  if (!active.length) {
+    activeWrap.innerHTML = `<div class="empty">Añade tu primer ejercicio arriba.</div>`;
+  }
+  for (const ex of active) {
+    const setsCount = (await allSetsForExercise(ex.id)).length;
+    const exGroups = await groupsForExercise(ex.id);
+    const row = document.createElement("div");
+    row.className = "card row";
+    row.innerHTML = `
+      <span style="flex:1;">
+        <span style="font-size:16px;font-weight:600;">${escapeHtml(ex.name)}</span>
+        ${exGroups.length ? `<span class="badge-row">${exGroups.map(g => `<span class="badge">${escapeHtml(g.name)}</span>`).join("")}</span>` : ""}
+      </span>
+      <button class="icon-btn" title="Renombrar">✎</button>
+      <button class="icon-btn danger" title="Archivar">🗄</button>
+    `;
+    const [renameBtn, archiveBtn] = row.querySelectorAll("button");
+    renameBtn.addEventListener("click", () => renameExercise(ex));
+    archiveBtn.addEventListener("click", () => archiveExercise(ex, setsCount));
+    activeWrap.appendChild(row);
+  }
+
+  const archWrap = $("#archived-wrap");
+  archWrap.innerHTML = "";
+  if (archived.length) {
+    const label = document.createElement("div");
+    label.className = "section-label";
+    label.textContent = "ARCHIVADOS";
+    archWrap.appendChild(label);
+    for (const ex of archived) {
+      const setsCount = (await allSetsForExercise(ex.id)).length;
+      const row = document.createElement("div");
+      row.className = "card row archived-row";
+      row.innerHTML = `
+        <span style="font-size:15px;flex:1;">${escapeHtml(ex.name)}</span>
+        <button class="icon-btn" title="Reactivar">↩︎</button>
+        ${setsCount === 0 ? '<button class="icon-btn danger" title="Eliminar">✕</button>' : ""}
+      `;
+      const buttons = row.querySelectorAll("button");
+      buttons[0].addEventListener("click", () => reactivateExercise(ex));
+      if (buttons[1]) buttons[1].addEventListener("click", () => hardDeleteExercise(ex));
+      archWrap.appendChild(row);
+    }
+  }
+}
+
+$("#add-ex-btn").addEventListener("click", async () => {
+  const input = $("#new-ex-name");
+  const name = input.value.trim();
+  if (!name) return;
+  await addExercise(name);
+  input.value = "";
+  renderExerciseManager();
+  showToast("Ejercicio añadido");
+});
+$("#new-ex-name").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#add-ex-btn").click(); });
+
+function renameExercise(ex){
+  const name = prompt("Nombre del ejercicio", ex.name);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  ex.name = trimmed;
+  saveExercise(ex).then(() => { renderExerciseManager(); showToast("Ejercicio actualizado"); });
+}
+
+function archiveExercise(ex, setsCount){
+  openModal({
+    title: `Archivar "${ex.name}"`,
+    body: setsCount
+      ? `Tiene ${setsCount} serie(s) registradas: se conservan en el historial, pero dejará de aparecer para registrar nuevas series. Puedes reactivarlo cuando quieras.`
+      : `Dejará de aparecer para registrar series. Puedes reactivarlo cuando quieras.`,
+    actions: [
+      { label: "Cancelar", cls: "btn-ghost" },
+      { label: "Archivar", cls: "btn-outline", onClick: async () => {
+        ex.active = false;
+        await saveExercise(ex);
+        renderExerciseManager();
+        showToast("Ejercicio archivado");
+      }},
+    ],
+  });
+}
+function reactivateExercise(ex){
+  ex.active = true;
+  saveExercise(ex).then(() => { renderExerciseManager(); showToast("Ejercicio reactivado"); });
+}
+function hardDeleteExercise(ex){
+  openModal({
+    title: `Eliminar "${ex.name}"`,
+    body: `No tiene series registradas, así que se eliminará por completo. Esta acción no se puede deshacer.`,
+    actions: [
+      { label: "Cancelar", cls: "btn-ghost" },
+      { label: "Eliminar", cls: "btn-outline", onClick: async () => {
+        await deleteExerciseHard(ex.id);
+        await cleanupGroupReferences(ex.id);
+        renderExerciseManager();
+        showToast("Ejercicio eliminado");
+      }},
+    ],
+  });
+}
+
+/* ============================================================
+   Vista: Ejercicios — Grupos (rutinas: agrupar ejercicios)
+============================================================ */
+async function renderGroupsManager(){
+  const groups = await listGroups();
+  const wrap = $("#groups-list");
+  wrap.innerHTML = "";
+  if (!groups.length) {
+    wrap.innerHTML = `<div class="empty">Aún no tienes grupos.<br>Crea uno arriba, por ejemplo "Empuje" o "Pierna".</div>`;
+    return;
+  }
+  for (const g of groups) {
+    const btn = document.createElement("button");
+    btn.className = "ex-item";
+    btn.innerHTML = `
+      <span>${escapeHtml(g.name)}<span class="hint">${g.exerciseIds.length} ejercicio(s)</span></span>
+      <span class="chev">›</span>`;
+    btn.addEventListener("click", () => openGroupEditorById(g.id));
+    wrap.appendChild(btn);
+  }
+}
+
+$("#add-grp-btn").addEventListener("click", async () => {
+  const input = $("#new-grp-name");
+  const name = input.value.trim();
+  if (!name) return;
+  await addGroup(name);
+  input.value = "";
+  renderGroupsManager();
+  showToast("Grupo creado");
+});
+$("#new-grp-name").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#add-grp-btn").click(); });
+
+async function openGroupEditorById(id){
+  const groups = await listGroups();
+  const group = groups.find(g => g.id === id);
+  if (!group) {
+    state.editingGroupId = null;
+    $("#grupo-editor-view").hidden = true;
+    $("#grupos-list-view").hidden = false;
+    renderGroupsManager();
+    return;
+  }
+  state.editingGroupId = id;
+  $("#grupos-list-view").hidden = true;
+  $("#grupo-editor-view").hidden = false;
+  await renderGroupEditorView(group);
+}
+
+async function renderGroupEditorView(group){
+  const allExercises = await listExercises();
+  const active = allExercises.filter(e => e.active);
+  const byId = new Map(allExercises.map(e => [e.id, e]));
+
+  const included = group.exerciseIds.map(id => byId.get(id)).filter(Boolean);
+  const availableToAdd = active.filter(e => !group.exerciseIds.includes(e.id));
+
+  const wrap = $("#grupo-editor-view");
+  wrap.innerHTML = `
+    <div class="log-header">
+      <button class="icon-btn" id="grp-back-btn">‹ Grupos</button>
+    </div>
+    <div class="row" style="margin:-4px 0 16px;">
+      <h2 style="margin:0;font-size:20px;font-weight:800;">${escapeHtml(group.name)}</h2>
+      <div>
+        <button class="icon-btn" id="grp-rename-btn" title="Renombrar">✎</button>
+        <button class="icon-btn danger" id="grp-delete-btn" title="Eliminar grupo">✕</button>
+      </div>
+    </div>
+
+    <div class="section-label">EJERCICIOS DEL GRUPO, EN ORDEN</div>
+    <div id="grp-included-list"></div>
+
+    <div class="section-label">AÑADIR EJERCICIOS</div>
+    <div id="grp-available-list"></div>
+  `;
+
+  $("#grp-back-btn").addEventListener("click", () => {
+    state.editingGroupId = null;
+    $("#grupo-editor-view").hidden = true;
+    $("#grupos-list-view").hidden = false;
+    renderGroupsManager();
+  });
+  $("#grp-rename-btn").addEventListener("click", () => {
+    const name = prompt("Nombre del grupo", group.name);
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    group.name = trimmed;
+    saveGroup(group).then(() => renderGroupEditorView(group));
+  });
+  $("#grp-delete-btn").addEventListener("click", () => {
+    openModal({
+      title: `Eliminar grupo "${group.name}"`,
+      body: `Los ejercicios y su historial no se ven afectados: solo se elimina esta agrupación.`,
+      actions: [
+        { label: "Cancelar", cls: "btn-ghost" },
+        { label: "Eliminar", cls: "btn-outline", onClick: async () => {
+          await deleteGroup(group.id);
+          if (state.selectedGroupId === group.id) state.selectedGroupId = null;
+          state.editingGroupId = null;
+          $("#grupo-editor-view").hidden = true;
+          $("#grupos-list-view").hidden = false;
+          renderGroupsManager();
+          showToast("Grupo eliminado");
+        }},
+      ],
+    });
+  });
+
+  const incWrap = $("#grp-included-list");
+  incWrap.innerHTML = "";
+  if (!included.length) {
+    incWrap.innerHTML = `<div class="empty" style="padding:16px 10px;">Añade ejercicios desde la lista de abajo.</div>`;
+  }
+  included.forEach((ex, i) => {
+    const row = document.createElement("div");
+    row.className = "grp-row";
+    row.innerHTML = `
+      <div class="arrows">
+        <button ${i === 0 ? "disabled" : ""} title="Subir">▲</button>
+        <button ${i === included.length - 1 ? "disabled" : ""} title="Bajar">▼</button>
+      </div>
+      <span class="grp-name">${escapeHtml(ex.name)}${!ex.active ? `<span class="archived-tag">archivado</span>` : ""}</span>
+      <button class="icon-btn danger" title="Quitar del grupo">✕</button>
+    `;
+    const [upBtn, downBtn] = row.querySelectorAll(".arrows button");
+    const removeBtn = row.querySelector(".icon-btn.danger");
+    upBtn.addEventListener("click", async () => { await moveExerciseInGroup(group, ex.id, -1); renderGroupEditorView(group); });
+    downBtn.addEventListener("click", async () => { await moveExerciseInGroup(group, ex.id, 1); renderGroupEditorView(group); });
+    removeBtn.addEventListener("click", async () => {
+      group.exerciseIds = group.exerciseIds.filter(id => id !== ex.id);
+      await saveGroup(group);
+      renderGroupEditorView(group);
+    });
+    incWrap.appendChild(row);
+  });
+
+  const availWrap = $("#grp-available-list");
+  availWrap.innerHTML = "";
+  if (!availableToAdd.length) {
+    availWrap.innerHTML = `<div class="empty" style="padding:16px 10px;">${active.length ? "Ya están todos añadidos." : "No tienes ejercicios activos. Créalos en la pestaña Ejercicios."}</div>`;
+  }
+  availableToAdd.forEach(ex => {
+    const btn = document.createElement("button");
+    btn.className = "add-ex-item";
+    btn.innerHTML = `<span>${escapeHtml(ex.name)}</span><span style="color:var(--gold);font-weight:700;">+ añadir</span>`;
+    btn.addEventListener("click", async () => {
+      group.exerciseIds.push(ex.id);
+      await saveGroup(group);
+      renderGroupEditorView(group);
+    });
+    availWrap.appendChild(btn);
+  });
+}
+
+async function moveExerciseInGroup(group, exerciseId, direction){
+  const idx = group.exerciseIds.indexOf(exerciseId);
+  if (idx === -1) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= group.exerciseIds.length) return;
+  const arr = group.exerciseIds;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  await saveGroup(group);
+}
+
+/* ============================================================
+   Vista: Datos (backup + almacenamiento)
+============================================================ */
+async function renderDatos(){
+  const [exercises, sets] = await Promise.all([listExercises(), allSets()]);
+  $("#stat-sets").textContent = sets.length;
+  $("#stat-ex").textContent = exercises.filter(e => e.active).length;
+
+  const statusEl = $("#persist-status");
+  const btn = $("#persist-btn");
+  if (navigator.storage && navigator.storage.persisted) {
+    const persisted = await navigator.storage.persisted();
+    if (persisted) {
+      statusEl.textContent = "Activado: iOS no debería borrar tus datos por inactividad.";
+      statusEl.className = "persist-ok";
+      btn.style.display = "none";
+    } else {
+      statusEl.textContent = "No concedido todavía. Actívalo para proteger tu historial.";
+      statusEl.className = "persist-warn";
+      btn.style.display = "block";
+    }
+  } else {
+    statusEl.textContent = "Este navegador no informa del estado.";
+    btn.style.display = "none";
+  }
+}
+
+$("#persist-btn").addEventListener("click", async () => {
+  if (navigator.storage && navigator.storage.persist) {
+    const ok = await navigator.storage.persist();
+    showToast(ok ? "Almacenamiento persistente activado" : "No concedido por el sistema");
+    renderDatos();
+  }
+});
+
+async function requestPersistIfNeeded(){
+  try {
+    if (navigator.storage && navigator.storage.persisted && navigator.storage.persist) {
+      const already = await navigator.storage.persisted();
+      if (!already) await navigator.storage.persist();
+    }
+  } catch (_) { /* silencioso: no es crítico */ }
+}
+
+$("#export-btn").addEventListener("click", async () => {
+  const [exercises, sets, groups] = await Promise.all([listExercises(), allSets(), listGroups()]);
+  const payload = { app: "entrenos", version: 2, exportedAt: new Date().toISOString(), exercises, sets, groups };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = todayStr();
+  a.href = url;
+  a.download = `entrenos-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  showToast("Copia de seguridad descargada");
+});
+
+$("#import-btn").addEventListener("click", () => $("#import-file").click());
+$("#import-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data || !Array.isArray(data.exercises) || !Array.isArray(data.sets)) {
+      throw new Error("formato inválido");
+    }
+    const groups = Array.isArray(data.groups) ? data.groups : [];
+    openModal({
+      title: "Importar copia de seguridad",
+      body: `Se combinará con tus datos actuales: ${data.exercises.length} ejercicio(s), ${groups.length} grupo(s) y ${data.sets.length} serie(s). Los registros con el mismo id se sobrescriben; el resto se añade.`,
+      actions: [
+        { label: "Cancelar", cls: "btn-ghost" },
+        { label: "Importar", cls: "btn-gold", onClick: async () => {
+          for (const ex of data.exercises) await saveExercise(ex);
+          for (const g of groups) await saveGroup(g);
+          for (const s of data.sets) await updateSet(s);
+          renderDatos();
+          showToast("Importación completada");
+        }},
+      ],
+    });
+  } catch (err) {
+    openModal({
+      title: "No se pudo importar",
+      body: "El archivo no tiene el formato esperado de una copia de seguridad de esta app.",
+      actions: [{ label: "Entendido", cls: "btn-ghost" }],
+    });
+  }
+});
+
+/* ============================================================
+   Arranque
+============================================================ */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+
+setView("entrenar");
+})();
+</script>
+</body>
+</html>
