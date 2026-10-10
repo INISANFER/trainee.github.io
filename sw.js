@@ -3,7 +3,7 @@
 // La app no hace NINGUNA llamada de red propia (todos los datos viven en
 // IndexedDB), así que una vez cacheada la primera vez, funciona 100% offline.
 
-const CACHE_NAME = "entrenos-v4";
+const CACHE_NAME = "entrenos-v5";
 
 const APP_SHELL = [
   "./",
